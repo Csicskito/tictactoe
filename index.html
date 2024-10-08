@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        #menu, #game {
+            text-align: center;
+        }
+        #menu button, #game button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        #board {
+            display: grid;
+            margin: 20px auto;
+            gap: 5px;
+            justify-content: center;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #fff;
+            border: 1px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        h1, h2 {
+            margin: 10px;
+        }
+        /* Kör alakú gomb a jobb felső sarokban */
+        #darkModeButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 1px solid #000;
+            background-image: url('https://img.icons8.com/ios-filled/50/000000/moon-symbol.png');
+            background-size: 60%;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        /* Sötét mód stílus */
+        body.dark-mode {
+            background-color: #27201f;
+            color: #f0f0f0;
+        }
+        .dark-mode .cell {
+            background-color: #5D4037;
+            color: #f0f0f0;
+            border-color: #4E342E;
+        }
+        .dark-mode #darkModeButton {
+            background-color: #5D4037;
+            border-color: #f0f0f0;
+            background-image: url('https://img.icons8.com/ios-filled/50/f0f0f0/sun.png');
+        }
+        /* Bézs szín sötét mód nélkül */
+        body {
+            background-color: #e4e4d7;
+        }
+        .cell {
+            background-color: #fff8e1;
+        }
+        .dark-mode .cell {
+            background-color: #6d4c41;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu">
+        <h1><img id="menuLogo" src="logo.png" alt="Logo" width="200"> </h1> <!-- Logó -->
+        <button onclick="startGame('1player')">1 Játékos</button>
+        <button onclick="startGame('2player')">2 Játékos</button>
+    </div>
+
+    <div id="game" style="display: none;">
+        <h2>Válassz tábla méretet:</h2>
+        <button onclick="setBoardSize(3)">3x3</button>
+        <button onclick="setBoardSize(5)">5x5</button>
+        <button onclick="setBoardSize(10)">10x10</button>
+        <button onclick="goBack()">Vissza</button>
+        <div id="board"></div>
+    </div>
+
+    <!-- Kör alakú gomb a jobb felső sarokban -->
+    <button id="darkModeButton" onclick="toggleDarkMode()"></button>
+
+    <script>
+        let currentPlayer = 'X';
+        let boardSize;
+        let board = [];
+        let mode;
+        let winCondition;
+        let isPlayerTurn = true;
+        let darkMode = false; // Sötét mód flag
+
+        function startGame(selectedMode) {
+            mode = selectedMode;
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+        }
+
+        function setBoardSize(size) {
+            boardSize = size;
+            if (boardSize === 3) {
+                winCondition = 3;
+            } else if (boardSize === 5) {
+                winCondition = 4;
+            } else if (boardSize === 10) {
+                winCondition = 5;
+            }
+            createBoard();
+        }
+
+        function createBoard() {
+            board = Array.from({ length: boardSize }, () => Array(boardSize).fill(''));
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            boardElement.style.gridTemplateColumns = `repeat(${boardSize}, 60px)`;
+            boardElement.style.gridTemplateRows = `repeat(${boardSize}, 60px)`;
+
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', handleClick);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        function handleClick(event) {
+            const row = event.target.dataset.row;
+            const col = event.target.dataset.col;
+
+            if (board[row][col] !== '' || !isPlayerTurn) {
+                return; // Ha már van itt lépés vagy a játékos nem tud lépni, ne csinálj semmit
+            }
+
+            board[row][col] = currentPlayer;
+            event.target.textContent = currentPlayer;
+
+            if (checkWin(row, col)) {
+                setTimeout(() => alert(`${currentPlayer} nyert!`), 100);
+                resetGame();
+            } else if (isDraw()) {
+                setTimeout(() => alert('Döntetlen!'), 100);
+                resetGame();
+            } else {
+                // Ha többjátékos mód, válts a másik játékosra
+                if (mode === '2player') {
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; // Felváltva lépnek
+                } else if (mode === '1player' && currentPlayer === 'X') {
+                    currentPlayer = 'O';
+                    isPlayerTurn = false;
+                    setTimeout(computerMove, 500); // A gép lépése 1 játékos módban
+                }
+            }
+        }
+
+        function computerMove() {
+            let row, col;
+            do {
+                row = Math.floor(Math.random() * boardSize);
+                col = Math.floor(Math.random() * boardSize);
+            } while (board[row][col] !== '');
+
+            board[row][col] = 'O';
+            document.querySelector(`[data-row="${row}"][data-col="${col}"]`).textContent = 'O';
+
+            if (checkWin(row, col)) {
+                setTimeout(() => alert('A kör nyert!'), 100);
+                resetGame();
+            } else if (isDraw()) {
+                setTimeout(() => alert('Döntetlen!'), 100);
+                resetGame();
+            } else {
+                currentPlayer = 'X';
+                isPlayerTurn = true; // A játékos léphet újra
+            }
+        }
+
+        function checkWin(row, col) {
+            return checkDirection(row, col, 1, 0) || // vízszintesen
+                   checkDirection(row, col, 0, 1) || // függőlegesen
+                   checkDirection(row, col, 1, 1) || // átló (balról jobbra)
+                   checkDirection(row, col, 1, -1);  // átló (jobbról balra)
+        }
+
+        function checkDirection(row, col, rowDir, colDir) {
+            let count = 1;
+            for (let i = 1; i < winCondition; i++) {
+                const newRow = parseInt(row) + i * rowDir;
+                const newCol = parseInt(col) + i * colDir;
+                if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol] === currentPlayer) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            for (let i = 1; i < winCondition; i++) {
+                const newRow = parseInt(row) - i * rowDir;
+                const newCol = parseInt(col) - i * colDir;
+                if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize && board[newRow][newCol] === currentPlayer) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            return count >= winCondition;
+        }
+
+        function isDraw() {
+            return board.flat().every(cell => cell !== '');
+        }
+
+        function resetGame() {
+            board = Array.from({ length: boardSize }, () => Array(boardSize).fill(''));
+            document.getElementById('board').innerHTML = '';
+            createBoard();
+            currentPlayer = 'X';
+            isPlayerTurn = true;
+        }
+
+        function goBack() {
+            document.getElementById('menu').style.display = 'block';
+            document.getElementById('game').style.display = 'none';
+            resetGame();
+        }
+
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            document.body.classList.toggle('dark-mode', darkMode);
+
+            // Kép frissítése sötét módra kattintva
+            const menuLogo = document.getElementById('menuLogo');
+            menuLogo.src = darkMode ? 'flogo.png' : 'logo.png';
+        }
+    </script>
+</body>
+</html>
